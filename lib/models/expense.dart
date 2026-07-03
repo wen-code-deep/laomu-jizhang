@@ -41,6 +41,8 @@ class Expense {
   final DateTime date;
   final String? note;
   final bool isExpense; // true = 支出, false = 收入
+  final String? payee; // 收款方（OCR 识别）
+  final String? productName; // 商品名称（OCR 识别）
 
   const Expense({
     required this.id,
@@ -49,6 +51,8 @@ class Expense {
     required this.date,
     this.note,
     this.isExpense = true, // 默认支出
+    this.payee,
+    this.productName,
   });
 
   /// 获取分类对象（含图标）
@@ -75,6 +79,8 @@ class Expense {
       'date': date.toIso8601String(),
       'note': note ?? '',
       'isExpense': isExpense,
+      if (payee != null) 'payee': payee,
+      if (productName != null) 'productName': productName,
     };
   }
 
@@ -87,6 +93,8 @@ class Expense {
       date: DateTime.parse(json['date'] as String),
       note: (json['note'] as String).isEmpty ? null : json['note'] as String,
       isExpense: json['isExpense'] as bool? ?? true,
+      payee: json['payee'] as String?,
+      productName: json['productName'] as String?,
     );
   }
 

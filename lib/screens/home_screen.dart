@@ -32,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isExpense = true;
   bool _isOcrProcessing = false; // OCR 识别中
+  String? _ocrPayee; // OCR识别的收款方
+  String? _ocrProductName; // OCR识别的商品名
 
   // 筛选
   String? _filterCategory;
@@ -86,12 +88,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ? null
               : _noteController.text.trim(),
           isExpense: _isExpense,
+          payee: _ocrPayee,
+          productName: _ocrProductName,
         ),
       );
     });
 
     _amountController.clear();
     _noteController.clear();
+    _ocrPayee = null;
+    _ocrProductName = null;
     setState(() {
       _selectedCategory = _isExpense
           ? ExpenseCategory.expenseCategories.first.name
@@ -255,8 +261,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+            if (hasPayee)
+              Row(
+                children: [
+                  const Text('🏪 收款方：', style: TextStyle(fontSize: 15)),
+                  Flexible(
+                    child: Text(
+                      result.payee!,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
             if (hasPayee) const SizedBox(height: 10),
-            if (!hasAmount && !hasPayee)
+            if (result.productName != null)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('🛒 商品：', style: TextStyle(fontSize: 15)),
+                  Flexible(
+                    child: Text(
+                      result.productName!,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w500),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            if (result.productName != null) const SizedBox(height: 10),
+            if (!hasAmount && !hasPayee && result.productName == null)
               const Text('未能提取到金额或收款方'),
             if (result.rawText.isNotEmpty) ...[
               const Divider(height: 20),
@@ -294,9 +330,10 @@ class _HomeScreenState extends State<HomeScreen> {
               if (hasAmount) {
                 _amountController.text = result.amount!.toStringAsFixed(2);
               }
-              if (hasPayee) {
-                _noteController.text = '收款方: ${result.payee}';
-              }
+              setState(() {
+                _ocrPayee = result.payee;
+                _ocrProductName = result.productName;
+              });
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('填入表单'),
@@ -646,12 +683,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          subtitle: Text(
-            [
-              _formatDate(e.date),
-              if (e.note != null && e.note!.isNotEmpty) e.note!,
-            ].join(' · '),
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_formatDate(e.date),
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+              if (e.payee != null && e.payee!.isNotEmpty)
+                Text('🏪 ${e.payee}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              if (e.productName != null && e.productName!.isNotEmpty)
+                Text('🛒 ${e.productName}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              if (e.note != null && e.note!.isNotEmpty)
+                Text(e.note!,
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+            ],
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
