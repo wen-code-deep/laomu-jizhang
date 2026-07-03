@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd //c \"taskkill /f /im laomu_jizhang.exe\")",
+      "Bash(cmd //c start \"\" \"E:\\\\ai\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\laomu_jizhang.exe\")"
+    ]
+  }
+}

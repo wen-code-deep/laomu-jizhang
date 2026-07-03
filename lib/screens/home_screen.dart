@@ -110,21 +110,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _deleteExpense(int index) {
-    showDialog(
+    _confirmDelete(index); // 复用同一个确认弹窗
+  }
+
+  Future<bool> _confirmDelete(int index) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('确认删除'),
         content: const Text('确定要删除这笔记录吗？'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('取消'),
           ),
           TextButton(
             onPressed: () {
               setState(() => _expenses.removeAt(index));
               _save();
-              Navigator.pop(ctx);
+              Navigator.pop(ctx, true);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('删除'),
@@ -132,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+    return confirmed ?? false;
   }
 
   // ==================== 识图功能 ====================
@@ -252,11 +257,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             if (hasPayee) const SizedBox(height: 10),
             if (!hasAmount && !hasPayee)
-              const Text('未能提取到金额或收款方，原始识别文字已填入备注'),
+              const Text('未能提取到金额或收款方'),
             if (result.rawText.isNotEmpty) ...[
               const Divider(height: 20),
               Text(
-                '原始识别文字（已填入备注框）：',
+                '原始识别文字：',
                 style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
               const SizedBox(height: 6),
@@ -289,14 +294,8 @@ class _HomeScreenState extends State<HomeScreen> {
               if (hasAmount) {
                 _amountController.text = result.amount!.toStringAsFixed(2);
               }
-              if (hasPayee || result.rawText.isNotEmpty) {
-                final noteParts = <String>[];
-                if (hasPayee) noteParts.add('收款方: ${result.payee}');
-                // 把原始识别文字也附上，方便查阅
-                if (result.rawText.isNotEmpty) {
-                  noteParts.add(result.rawText);
-                }
-                _noteController.text = noteParts.join('\n');
+              if (hasPayee) {
+                _noteController.text = '收款方: ${result.payee}';
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
@@ -601,43 +600,83 @@ class _HomeScreenState extends State<HomeScreen> {
     final color = isExpense ? Colors.red : Colors.green;
     final prefix = isExpense ? '-' : '+';
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor:
-              isExpense ? Colors.red.shade50 : Colors.green.shade50,
-          child: Text(e.category.icon, style: const TextStyle(fontSize: 22)),
+    return Dismissible(
+      key: ValueKey(e.id),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => _confirmDelete(index),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
         ),
-        title: Row(
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(e.category.name),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(
-                color: isExpense ? Colors.red.shade50 : Colors.green.shade50,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(e.typeLabel,
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: isExpense ? Colors.red : Colors.green)),
-            ),
+            Icon(Icons.delete, color: Colors.white, size: 20),
+            SizedBox(width: 4),
+            Text('删除', style: TextStyle(color: Colors.white, fontSize: 14)),
           ],
         ),
-        subtitle: Text(
-          [
-            _formatDate(e.date),
-            if (e.note != null && e.note!.isNotEmpty) e.note!,
-          ].join(' · '),
-          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+      ),
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor:
+                isExpense ? Colors.red.shade50 : Colors.green.shade50,
+            child: Text(e.category.icon, style: const TextStyle(fontSize: 22)),
+          ),
+          title: Row(
+            children: [
+              Text(e.category.name),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isExpense ? Colors.red.shade50 : Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(e.typeLabel,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: isExpense ? Colors.red : Colors.green)),
+              ),
+            ],
+          ),
+          subtitle: Text(
+            [
+              _formatDate(e.date),
+              if (e.note != null && e.note!.isNotEmpty) e.note!,
+            ].join(' · '),
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$prefix¥${e.amount.toStringAsFixed(2)}',
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: color),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                color: Colors.grey[400],
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                    minWidth: 32, minHeight: 32),
+                onPressed: () => _deleteExpense(index),
+                tooltip: '删除',
+              ),
+            ],
+          ),
+          onLongPress: () => _deleteExpense(index),
         ),
-        trailing: Text(
-          '$prefix¥${e.amount.toStringAsFixed(2)}',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color),
-        ),
-        onLongPress: () => _deleteExpense(index),
       ),
     );
   }

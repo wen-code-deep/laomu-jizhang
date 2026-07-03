@@ -34,6 +34,10 @@ class OcrResult {
     // 候选金额：记录 (金额, 在words中的位置)
     final List<MapEntry<double, int>> moneyCandidates = [];
 
+    // 金额关键词（用于同词匹配和相邻词匹配）
+    final amountKeywords = RegExp(
+        r'(?:金额|付款|实付|实收|应收|合计|合\s*计|总计|总\s*计|消费合计|消费|应付|支付|收款|找零)');
+
     for (int i = 0; i < words.length; i++) {
       final word = words[i];
 
@@ -74,9 +78,10 @@ class OcrResult {
         }
       }
 
-      // 金额:35.50、实付35.50
+      // 金额:35.50、实付35.50、合计 128.00
+      // 餐厅小票格式：合计128.00 / 合计 128.00 / 合 计：128.00
       final keywordMatch = RegExp(
-              r'(?:金额|付款|实付|合计|总计|消费|支付|收款)[：:]\s*(-?\d+\.?\d{0,2})')
+              r'(?:金额|付款|实付|实收|应收|合计|合\s*计|总计|总\s*计|消费合计|应付|消费|支付|收款|找零)[：:\s]*(-?\d+\.?\d{0,2})')
           .firstMatch(word);
       if (keywordMatch != null) {
         final val = double.tryParse(keywordMatch.group(1)!);
@@ -84,6 +89,31 @@ class OcrResult {
           final absVal = val.abs();
           if (absVal > 0 && absVal < 1000000 && !looksLikeYear(absVal)) {
             moneyCandidates.add(MapEntry(absVal, i));
+          }
+        }
+      }
+
+      // 相邻词匹配：关键词在一个词，数字在下一个词
+      // 例如：["消费合计", "1150"] 或 ["应付", "1150"]
+      if (i + 1 < words.length && amountKeywords.hasMatch(word)) {
+        final nextWord = words[i + 1].trim();
+        final nextNum = double.tryParse(nextWord);
+        if (nextNum != null && nextNum > 0 && nextNum < 1000000) {
+          moneyCandidates.add(MapEntry(nextNum, i + 1));
+        }
+      }
+
+      // 上一词是关键词，当前词是数字
+      // 例如：["合计", "1150.50"]
+      if (i > 0 && amountKeywords.hasMatch(words[i - 1])) {
+        final numMatch = RegExp(r'^\s*(-?\d+\.?\d{0,2})\s*$').firstMatch(word);
+        if (numMatch != null) {
+          final val = double.tryParse(numMatch.group(1)!);
+          if (val != null) {
+            final absVal = val.abs();
+            if (absVal > 0 && absVal < 1000000 && !looksLikeYear(absVal)) {
+              moneyCandidates.add(MapEntry(absVal, i));
+            }
           }
         }
       }
@@ -194,7 +224,7 @@ class OcrResult {
 class BaiduOcrService {
   static const _tokenUrl = 'https://aip.baidubce.com/oauth/2.0/token';
   static const _ocrUrl =
-      'https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic';
+      'https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic';
 
   final String apiKey;
   final String secretKey;

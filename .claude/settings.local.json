@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd //c powershell -ExecutionPolicy Bypass -Command ' *)",
+      "Bash(cmd //c \"powershell -ExecutionPolicy Bypass -File e:\\\\ai\\\\create_shortcut.ps1\")",
+      "Bash(cmd //c \"taskkill /f /im laomu_jizhang.exe\")",
+      "Bash(cmd //c start \"\" \"E:\\\\ai\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\laomu_jizhang.exe\")",
+      "Bash(git commit -m '修复：小票OCR金额识别 + 删除记录功能优化 *)"
+    ]
+  }
+}
