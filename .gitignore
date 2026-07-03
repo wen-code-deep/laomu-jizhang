@@ -43,3 +43,19 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android SDK/Studio files that may accidentally land in the android/ folder
+android/bin/
+android/jbr/
+android/lib/
+android/license/
+android/modules/
+android/plugins/
+android/build.txt
+android/product-info.json
+android/uninstall.exe
+android/LICENSE.txt
+android/NOTICE.txt
+android/local.properties
+android/.gradle/
+android/app/build/

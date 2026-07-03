@@ -33,7 +33,9 @@
       "Bash(python -c ' *)",
       "Bash(cmd //c \"powershell -ExecutionPolicy Bypass -File e:\\\\ai\\\\update_shortcut.ps1\")",
       "Bash(gh auth *)",
-      "Bash(git commit -m '添加安卓平台支持 + 新图标 *)"
+      "Bash(git commit -m '添加安卓平台支持 + 新图标 *)",
+      "Bash(git rm *)",
+      "Bash(echo \"Android/\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\wanch\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\cmdline-tools",
