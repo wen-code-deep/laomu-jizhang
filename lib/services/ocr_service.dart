@@ -200,60 +200,88 @@ class OcrResult {
     // print('[OCR] 识别到 ${words.length} 行文字:');
 
     // ---- 2. 从文字中查找收款方 ----
-    // 策略1：找"收款方"/"商户"关键词，后面跟着的就是店名
-    // 微信支付/支付宝截图常见格式：
-    //   "收款方" 后面单独一个词是店名
-    //   "收款方七巧鲁班工厂店" 同一行
-    //   "收款方：七巧鲁班工厂店" 带冒号空格
-    //   "商户简称" 后面是店名
-    // 注意：关键词按长度从长到短排列，避免 "商户" 误匹配 "商户简称"
-    final payeeKeywords = [
-      '收款商户', '商户简称', '收款店铺', '收款方', '商户',
-    ];
-    for (int i = 0; i < words.length; i++) {
-      final word = words[i].trim();
-
-      for (final kw in payeeKeywords) {
-        // 情况A：关键词在同一词内，后面紧跟店名
-        // 例如："收款方七巧鲁班工厂店"、"收款方：七巧鲁班工厂店"
-        if (word.startsWith(kw)) {
-          var rest = word.substring(kw.length);
-          // 去掉开头的分隔符（冒号、空格等）
-          rest = rest.replaceAll(RegExp(r'^[：:，,。.\s]+'), '');
-          rest = rest.replaceAll(RegExp(r'[，,。.\s\-]+$'), '');
-          if (rest.length >= 2 && rest.length < 30 && hasChinese(rest)) {
-            payee = rest;
-            break;
-          }
-          // 如果同一词内没有有效店名（如 "收款方："），尝试下一个词
-          if (rest.isEmpty && i + 1 < words.length) {
-            var nextName = words[i + 1].trim();
-            nextName = nextName.replaceAll(RegExp(r'[，,。.\s\-]+$'), '');
-            if (nextName.length >= 2 && nextName.length < 30 && hasChinese(nextName)) {
-              payee = nextName;
-              break;
-            }
-          }
-        }
-
-        // 情况B：关键词独占一行，下一个词是店名
-        // 例如：["收款方", "七巧鲁班工厂店"]
-        // 也兼容 "收款方：" 独占一行的情况
-        final wordClean = word.replaceAll(RegExp(r'[：:，,。.\s]+$'), '');
-        if (wordClean == kw && i + 1 < words.length) {
-          // 跳过纯标点/空行
-          for (int j = i + 1; j < words.length && j <= i + 2; j++) {
-            var nextName = words[j].trim();
-            nextName = nextName.replaceAll(RegExp(r'[，,。.\s\-]+$'), '');
-            if (nextName.length >= 2 && nextName.length < 30 && hasChinese(nextName)) {
-              payee = nextName;
-              break;
-            }
-          }
-          if (payee != null) break;
+    // 策略0：找"扫二维码付款-给XXX"或"向XXX付款"（微信扫码支付格式）
+    for (final word in words) {
+      final scanMatch = RegExp(r'扫二维码付款[-—]\s*给\s*(.+)').firstMatch(word);
+      if (scanMatch != null) {
+        var name = scanMatch.group(1)!.trim();
+        name = name.replaceAll(RegExp(r'[，,。.\s\-]+$'), '');
+        if (name.length >= 2 && name.length < 20 && hasChinese(name)) {
+          payee = name;
+          break;
         }
       }
-      if (payee != null) break;
+      // 支付宝/银行格式："向XXX付款"
+      final toMatch = RegExp(r'向\s*(.+?)\s*付款').firstMatch(word);
+      if (toMatch != null) {
+        var name = toMatch.group(1)!.trim();
+        if (name.length >= 2 && name.length < 20 && hasChinese(name)) {
+          payee = name;
+          break;
+        }
+      }
+    }
+
+    // 策略1：找"收款方"/"商户"关键词，后面跟着的就是店名
+    if (payee == null) {
+      final payeeKeywords = [
+        '收款商户', '商户简称', '收款店铺', '收款方', '商户',
+      ];
+      // "收款方XXX"中XXX不可能是这些词
+      final notPayee = {'备注', '服务', '名片', '详情', '信息'};
+
+      for (int i = 0; i < words.length; i++) {
+        final word = words[i].trim();
+
+        // 这些是UI标签，整体跳过
+        if (word == '收款方备注' || word == '收款方服务' || word == '收款方名片' ||
+            word == '商户全称' || word == '商户单号' || word == '收单机构') {
+          continue;
+        }
+
+        for (final kw in payeeKeywords) {
+          // 情况A：关键词在同一词内，后面紧跟店名
+          if (word.startsWith(kw)) {
+            var rest = word.substring(kw.length);
+            rest = rest.replaceAll(RegExp(r'^[：:，,。.\s]+'), '');
+            rest = rest.replaceAll(RegExp(r'[，,。.\s\-]+$'), '');
+            if (rest.length >= 2 && rest.length < 30 &&
+                hasChinese(rest) &&
+                !notPayee.contains(rest)) {
+              payee = rest;
+              break;
+            }
+            // 同一词内无效，尝试下一个词
+            if (rest.isEmpty && i + 1 < words.length) {
+              var nextName = words[i + 1].trim();
+              nextName = nextName.replaceAll(RegExp(r'[，,。.\s\-]+$'), '');
+              if (nextName.length >= 2 && nextName.length < 30 &&
+                  hasChinese(nextName) &&
+                  !notPayee.contains(nextName)) {
+                payee = nextName;
+                break;
+              }
+            }
+          }
+
+          // 情况B：关键词独占一行，下一个词是店名
+          final wordClean = word.replaceAll(RegExp(r'[：:，,。.\s]+$'), '');
+          if (wordClean == kw && i + 1 < words.length) {
+            for (int j = i + 1; j < words.length && j <= i + 2; j++) {
+              var nextName = words[j].trim();
+              nextName = nextName.replaceAll(RegExp(r'[，,。.\s\-]+$'), '');
+              if (nextName.length >= 2 && nextName.length < 30 &&
+                  hasChinese(nextName) &&
+                  !notPayee.contains(nextName)) {
+                payee = nextName;
+                break;
+              }
+            }
+            if (payee != null) break;
+          }
+        }
+        if (payee != null) break;
+      }
     }
 
     // 策略2：找"付款…给XXX"模式
