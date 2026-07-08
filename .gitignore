@@ -68,3 +68,17 @@ android/.gradle/
 .claude/settings.local.json
 # 本地开发临时目录
 /dev/
+
+# Android Studio IDE 二进制文件(绝不提交,体积巨大)
+/Android/plugins/
+/Android/lib/
+/Android/jbr/
+/Android/bin/
+/Android/build.txt
+/Android/product-info.json
+/Android/uninstall.exe
+/Android/LICENSE.txt
+/Android/NOTICE.txt
+/Android/local.properties
+/Android/.gradle/
+/Android/app/build/
