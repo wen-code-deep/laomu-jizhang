@@ -2,7 +2,40 @@
   "permissions": {
     "allow": [
       "Bash(cmd //c \"taskkill /f /im laomu_jizhang.exe\")",
-      "Bash(cmd //c start \"\" \"E:\\\\ai\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\laomu_jizhang.exe\")"
+      "Bash(cmd //c start \"\" \"E:\\\\ai\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\laomu_jizhang.exe\")",
+      "Bash(powershell -NoProfile -Command \"Compress-Archive -Path 'C:\\\\Users\\\\wanch\\\\Desktop\\\\laomu' -DestinationPath 'C:\\\\Users\\\\wanch\\\\Desktop\\\\laomu.zip' -Force\")",
+      "Bash(objdump -p \"e:/ai/build/windows/x64/runner/Release/laomu_jizhang.exe\")",
+      "Bash(dumpbin /dependents \"e:/ai/build/windows/x64/runner/Release/laomu_jizhang.exe\")",
+      "Bash(where vcruntime140.dll)",
+      "Bash(where msvcp140.dll)",
+      "Read(//c/Windows/System32/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -iE \"\\\\.dll$\")",
+      "Bash(ls \"C:/src/flutter/bin/cache/artifacts/engine/windows-x64-release/\" 2>/dev/null | head -20)",
+      "Read(//c/src/flutter/bin/cache/artifacts/engine/windows-x64-release/**)",
+      "Bash(find \"C:/src/flutter/bin/cache/artifacts/engine/\" -name \"*.dll\" 2>/dev/null)",
+      "Read(//c/src/flutter/bin/cache/artifacts/engine/**)",
+      "Bash(# Let me also check the Flutter SDK for MSVC runtime DLLs *)",
+      "Read(//c/src/flutter/bin/cache/artifacts/**)",
+      "Bash(# Try to find dumpbin or VS tools *)",
+      "Read(//c/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/**)",
+      "Bash(export DUMPBIN=\"C:/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe\")",
+      "Bash('C:/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe' /dependents e:/ai/build/windows/x64/runner/Release/flutter_windows.dll)",
+      "Bash('C:/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe' /dependents e:/ai/build/windows/x64/runner/Release/laomu_jizhang.exe)",
+      "Bash('C:/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe' //dependents 'e:\\\\ai\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\laomu_jizhang.exe')",
+      "Bash('C:/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe' //dependents 'e:\\\\ai\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\flutter_windows.dll')",
+      "Bash(cp \"C:/Windows/System32/vcruntime140.dll\" \"e:/ai/build/windows/x64/runner/Release/\")",
+      "Bash(cp \"C:/Windows/System32/vcruntime140_1.dll\" \"e:/ai/build/windows/x64/runner/Release/\")",
+      "Bash(cp \"C:/Windows/System32/msvcp140.dll\" \"e:/ai/build/windows/x64/runner/Release/\")",
+      "Bash(zip -r e:/ai/laomu.zip . -x \"*.pdb\")",
+      "Bash(powershell -Command ' *)",
+      "Bash(cp e:/ai/laomu.zip \"/c/Users/wanch/Desktop/laomu.zip\" && echo \"已复制到桌面\" && ls -lh \"/c/Users/wanch/Desktop/laomu.zip\")",
+      "Bash(rm -f e:/ai/laomu.zip \"/c/Users/wanch/Desktop/laomu.zip\")",
+      "Bash(cp e:/ai/laomu.zip \"/c/Users/wanch/Desktop/laomu.zip\")",
+      "Bash(powershell -Command \"Start-Process 'e:/ai/build/windows/x64/runner/Release/laomu_jizhang.exe'\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\wanch\\Desktop"
     ]
   }
 }

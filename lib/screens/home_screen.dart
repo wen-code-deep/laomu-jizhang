@@ -181,10 +181,12 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 选取图片并调用 OCR 识别
   Future<void> _pickAndRecognize(ImageSource source) async {
     try {
-      // 选取图片
+      // 选取图片（限制尺寸+压缩，加快上传速度）
       final picked = await _imagePicker.pickImage(
         source: source,
-        imageQuality: 90, // 压缩到 90% 质量，减小上传体积
+        maxWidth: 1080, // OCR 不需要超高分辨率
+        maxHeight: 1920,
+        imageQuality: 70, // 适度压缩，文字识别足够清晰
       );
 
       if (picked == null) return; // 用户取消
@@ -248,19 +250,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             if (hasAmount) const SizedBox(height: 10),
-            if (hasPayee)
-              Row(
-                children: [
-                  const Text('🏪 收款方：', style: TextStyle(fontSize: 15)),
-                  Flexible(
-                    child: Text(
-                      result.payee!,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
             if (hasPayee)
               Row(
                 children: [

@@ -1,14 +1,20 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+
+# Explicitly opt in to modern CMake behaviors early — CMP0091 (MSVC runtime library
+# selection) must be NEW before project() for CMAKE_MSVC_RUNTIME_LIBRARY to work.
+cmake_policy(VERSION 3.14...3.25)
+
 project(laomu_jizhang LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "laomu_jizhang")
 
-# Explicitly opt in to modern CMake behaviors to avoid warnings with recent
-# versions of CMake.
-cmake_policy(VERSION 3.14...3.25)
+# Use static MSVC runtime — eliminates need for VC++ Redistributable on target PCs
+if(MSVC)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)

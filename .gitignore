@@ -59,3 +59,12 @@ android/NOTICE.txt
 android/local.properties
 android/.gradle/
 android/app/build/
+android/.gradle/
+
+# === 本项目自定义忽略（推送到 Gitee 时不应包含）===
+# 打包/压缩产物
+*.zip
+# 本机个人 Claude 设置（含本地权限，不应对外公开）
+.claude/settings.local.json
+# 本地开发临时目录
+/dev/

@@ -82,10 +82,15 @@ class OcrResult {
           final absVal = val.abs();
           if (absVal >= 1.0 && absVal < 1000000 && !looksLikeYear(absVal)) {
             // 检查是否在同一个词中有关键词
+            // 但如果词中包含"减"（折扣/优惠），说明这是优惠金额而非实付金额，
+            // 不应被"实付"等关键词提升优先级
+            final isDiscount = word.contains('减');
             int priority = 50;
-            if (highPriorityKw.hasMatch(word)) priority = 100;
-            else if (midPriorityKw.hasMatch(word)) priority = 90;
-            else if (amountKeywords.hasMatch(word)) priority = 80;
+            if (!isDiscount) {
+              if (highPriorityKw.hasMatch(word)) priority = 100;
+              else if (midPriorityKw.hasMatch(word)) priority = 90;
+              else if (amountKeywords.hasMatch(word)) priority = 80;
+            }
             moneyCandidates.add(_MoneyCandidate(absVal, i, priority));
           }
         }
@@ -98,10 +103,13 @@ class OcrResult {
         if (val != null) {
           final absVal = val.abs();
           if (absVal >= 1.0 && absVal < 1000000 && !looksLikeYear(absVal)) {
+            final isDiscount = word.contains('减');
             int priority = 40;
-            if (highPriorityKw.hasMatch(word)) priority = 100;
-            else if (midPriorityKw.hasMatch(word)) priority = 90;
-            else if (amountKeywords.hasMatch(word)) priority = 80;
+            if (!isDiscount) {
+              if (highPriorityKw.hasMatch(word)) priority = 100;
+              else if (midPriorityKw.hasMatch(word)) priority = 90;
+              else if (amountKeywords.hasMatch(word)) priority = 80;
+            }
             moneyCandidates.add(_MoneyCandidate(absVal, i, priority));
           }
         }
@@ -116,9 +124,12 @@ class OcrResult {
         if (val != null) {
           final absVal = val.abs();
           if (absVal >= 1.0 && absVal < 1000000 && !looksLikeYear(absVal)) {
+            final isDiscount = word.contains('减');
             int priority = 80;
-            if (highPriorityKw.hasMatch(word)) priority = 100;
-            else if (midPriorityKw.hasMatch(word)) priority = 90;
+            if (!isDiscount) {
+              if (highPriorityKw.hasMatch(word)) priority = 100;
+              else if (midPriorityKw.hasMatch(word)) priority = 90;
+            }
             moneyCandidates.add(_MoneyCandidate(absVal, i, priority));
           }
         }
@@ -324,12 +335,13 @@ class OcrResult {
       for (int i = 0; i < words.length; i++) {
         var word = words[i].trim();
         // 去掉末尾常见的非文字符号（OCR常把">"粘在文字后面）
-        word = word.replaceAll(RegExp(r'[>》」】›»)\]]+$'), '');
+        word = word.replaceAll(RegExp(r'[.。>》」】›»)\]]+$'), '');
         if (word.isEmpty) continue;
 
         // 跳过明显不是店名的
         if (word.length < 2 ||
             word.length > 20 ||
+            !hasChinese(word) || // 店名至少含一个中文
             word.contains('支付') ||
             word.contains('成功') ||
             word.contains('当前') ||
@@ -410,10 +422,11 @@ class OcrResult {
           score += 4;
         }
         // 紧跟在"官方旗舰"之后（拼多多品牌区：品牌 → 官方旗舰 → 店名）
-        if (i > 0 && words[i - 1].contains('官方旗舰')) {
+        // 前一个词必须短（≤8字），否则"官方旗舰"是店名的一部分，不是标签
+        if (i > 0 && words[i - 1].contains('官方旗舰') && words[i - 1].length <= 8) {
           score += 12; // 高度可信：官方旗舰标签后面的就是品牌/店名
-        } else if (i > 0 && words[i - 1].contains('品牌')) {
-          score += 3;  // "品牌"后面的可能是店名，但不如"官方旗舰"确定
+        } else if (i > 0 && words[i - 1].contains('品牌') && words[i - 1].length <= 6) {
+          score += 3;  // "品牌"标签后面的可能是店名，但不如"官方旗舰"确定
         }
         // "【XXX】" 格式常见于拼多多店名
         if (word.startsWith('【') && word.contains('】')) {
@@ -486,7 +499,7 @@ class OcrResult {
 
       for (int i = searchStart; i < searchEnd; i++) {
         var word = words[i].trim();
-        word = word.replaceAll(RegExp(r'[>》」】›»)\]]+$'), '');
+        word = word.replaceAll(RegExp(r'[.。>》」】›»)\]]+$'), '');
 
         // 跳过明显不是商品名的
         if (word.length < 5 ||
@@ -501,13 +514,19 @@ class OcrResult {
             word.contains('支付') ||
             word.contains('退款') ||
             word.contains('物流') ||
-            word.contains('快递')) {
+            word.contains('快递') ||
+            word.contains('送至') ||
+            word.contains('收货') ||
+            word.contains('收件人') ||
+            word.contains('地址')) {
           continue;
         }
 
         // 商品名特征：较长的中文描述文字
         if (hasChinese(word)) {
           final dr = digitsRatio(word);
+          // 数字占比过高（手机号等），不太可能是商品名
+          if (dr > 0.4) continue;
           final chineseRatio = 1 - dr;
           // 中文占比高 + 字数多 = 更像商品描述
           final productScore = word.length * chineseRatio;
